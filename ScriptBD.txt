@@ -1,0 +1,166 @@
+Create Database trabajoFinalLab
+go
+
+Use trabajoFinalLab
+go
+
+CREATE TABLE tematicas(
+codigo_Tematica int identity(1,1) primary key,
+tematica varchar(40)
+)
+go
+
+CREATE TABLE oradores(
+codigo_orador int identity(1,1) primary key,
+nombre varchar(30),
+apellido varchar(30),
+DNI varchar(30),
+telefono varchar(30)
+)
+go
+
+
+CREATE TABLE charlas(
+codigo_charla int identity primary key,
+titulo varchar(40),
+descripcion varchar(MAX),
+horario time,
+duracion time,
+duracionReal time,
+cantAsistentes int,
+estado bit,
+codigo_orador int,
+codigo_tematica int,
+CONSTRAINT fk_orador_charlas FOREIGN KEY (codigo_orador) REFERENCES oradores (codigo_orador),
+CONSTRAINT fk_tematica_charlas FOREIGN KEY (codigo_tematica) REFERENCES tematicas (codigo_tematica)
+)
+go
+
+CREATE PROC sp_reporte5
+AS
+select top(1) o.apellido + ' ' + o.nombre , cast(Convert(Varchar(20),(datediff(mi,horario,duracion))) As int) 'Duracion Estimada'
+,cast(Convert(Varchar(20),(datediff(mi,horario,duracionReal))) As int)'Duracion Real' ,
+ min(cast(Convert(Varchar(20),(datediff(mi,horario,duracionReal))) As int)-cast(Convert(Varchar(20),(datediff(mi,horario,duracion))) As int))
+from charlas c INNER JOIN oradores o ON c.codigo_orador = o.codigo_orador
+Where estado = 0 
+group by o.apellido + ' ' + o.nombre , cast(Convert(Varchar(20),(datediff(mi,horario,duracion))) As int) , cast(Convert(Varchar(20),(datediff(mi,horario,duracionReal))) As int)
+order by 4
+go
+
+CREATE PROC SP_reporte4
+AS
+select tematica,count(c.codigo_charla) 'Cantidad De Charlas', sum(c.cantAsistentes) 'Cantidad De Asistentes', avg(cast(Convert(Varchar(20),(datediff(mi,horario,duracionReal))) As int))'Tiempo promedio'
+from charlas c join tematicas t on c.codigo_tematica= t.codigo_Tematica
+group by tematica
+go
+
+
+CREATE PROC SP_reporte3
+AS
+select titulo,nombre + ' ' +apellido AS orador,cantAsistentes from charlas c
+join oradores o on c.codigo_orador= o.codigo_orador
+where cantAsistentes > (select avg(cantAsistentes) from charlas)
+go
+
+CREATE PROC SP_reporte2
+AS
+select Codigo_charla,titulo,nombre + ' ' +apellido AS orador, Convert(Varchar(20),(datediff(mi,duracion,duracionReal))) AS'Diferencia'
+from charlas c 
+	INNER JOIN oradores o ON c.codigo_orador = o.codigo_orador 
+    INNER JOIN tematicas t ON t.codigo_Tematica = c.codigo_tematica
+where  Convert(Varchar(20),(datediff(mi,duracion,duracionReal))) > 10
+go
+
+CREATE PROC SP_reporte1
+AS
+select Codigo_charla,titulo,tematica,nombre + ' ' +apellido AS orador,RIGHT( CONVERT(DATETIME, horario, 108),8) as 'H Inicio',RIGHT( CONVERT(DATETIME, duracion, 108),8) as 'H fin',RIGHT( CONVERT(DATETIME, duracionReal, 108),8) as 'H fin real',cantAsistentes,estado,descripcion from charlas c 
+		INNER JOIN oradores o ON c.codigo_orador = o.codigo_orador 
+		INNER JOIN tematicas t ON t.codigo_Tematica = c.codigo_tematica
+go
+
+CREATE PROC SP_insertarCharla
+@titulo varchar(40) = '',
+@descrip varchar(max) = '',
+@horaInicio time,
+@horaFin time,
+@orador int,
+@tematica int
+AS
+INSERT INTO charlas(titulo,descripcion,horario,duracion,estado,codigo_orador,codigo_tematica)
+VALUES (@titulo,@descrip,@horaInicio,@horaFin,1,@orador,@tematica)
+
+
+CREATE PROC sp_obtenerTematicas
+AS
+Select codigo_Tematica,tematica from tematicas
+go
+
+CREATE PROC sp_buscarOradores
+AS
+Select codigo_orador,nombre,apellido,dni,telefono from oradores
+go
+
+
+
+ CREATE PROC SP_actualizarEstadoCharla
+ @idCharla int,
+ @hFin time,
+ @cantAsist int
+ AS
+ update charlas
+ set estado = 0, duracionReal = @hfin, cantAsistentes = @cantAsist
+ where codigo_charla = @idCharla
+go
+
+
+
+CREATE PROCEDURE SP_obtenerCharlas
+AS
+SELECT  codigo_charla,titulo, descripcion,RIGHT( CONVERT(DATETIME, horario, 108),8) as 'Horario',
+                            RIGHT( CONVERT(DATETIME, duracion, 108),8) as 'Duracion',
+						    RIGHT( CONVERT(DATETIME, duracionReal, 108),8)'Duracion real',
+							cantAsistentes,estado,apellido + ' ' + nombre as 'Oradaor',tematica
+FROM charlas c INNER JOIN oradores o ON c.codigo_orador = o.codigo_orador 
+               INNER JOIN tematicas t ON t.codigo_Tematica = c.codigo_tematica
+ORDER by codigo_charla
+go
+
+
+INSERT INTO charlas(titulo,descripcion,horario,duracion,duracionReal,cantAsistentes,estado,codigo_orador,codigo_tematica)
+VALUES ('Programacion JSP','Curso para aprender a programar en JSP','10:30','11:00',null,null,0,1,2)
+
+INSERT INTO charlas(titulo,descripcion,horario,duracion,duracionReal,cantAsistentes,estado,codigo_orador,codigo_tematica)
+VALUES ('Testing Avanzado','Testing para genios','11:00','11:30',null,null,1,2,3)
+
+INSERT INTO charlas(titulo,descripcion,horario,duracion,duracionReal,cantAsistentes,estado,codigo_orador,codigo_tematica)
+VALUES ('Freud yo y tu mama','Psicologia para locos','11:30','12:30',null,null,1,3,2)
+
+INSERT INTO charlas(titulo,descripcion,horario,duracion,duracionReal,cantAsistentes,estado,codigo_orador,codigo_tematica)
+VALUES ('Populista','Politica para todos','10:30','11:00',null,null,0,3,2)
+
+INSERT INTO charlas(titulo,descripcion,horario,duracion,duracionReal,cantAsistentes,estado,codigo_orador,codigo_tematica)
+VALUES ('Caidas en el bondi','Como caerse en un bondi','11:00','11:30',null,null,1,2,3)
+
+INSERT INTO charlas(titulo,descripcion,horario,duracion,duracionReal,cantAsistentes,estado,codigo_orador,codigo_tematica)
+VALUES ('Alopesia','Psicologia para locos','11:30','12:30',null,null,1,1,2)
+
+
+
+INSERT INTO oradores (nombre,apellido,DNI,telefono)
+VALUES ('Luciano','Cassettai','35004172','37645871')
+
+INSERT INTO oradores (nombre,apellido,DNI,telefono)
+VALUES ('Claudia','Chanquia','354784645','351456789')
+
+INSERT INTO oradores (nombre,apellido,DNI,telefono)
+VALUES ('Ernesto','Miloro','34521457','3514578487')
+
+INSERT INTO tematicas (tematica)
+VALUES ('Psicologia')
+
+INSERT INTO tematicas (tematica)
+VALUES ('Programacion')
+
+INSERT INTO tematicas (tematica)
+VALUES ('Testing')
+
